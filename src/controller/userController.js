@@ -1,4 +1,6 @@
 const User = require('../models/userModel');
+const jwt = require('jsonwebtoken');
+const config = require('../../config/config');
 
 
 const createUser = async (req, res) => {
@@ -19,54 +21,55 @@ const createUser = async (req, res) => {
 
 }
 
-const userLogin = async (req, res) => {
+const loginUser = async (req, res) => {
+    console.log("User login attempt with data:");
+  try {
+   
+
     const { email, password } = req.body;
-    try {
-        const user = await User.find({ email: email });
-        if (user.Length === 0) {
-            return res.status(404).json({ message: 'User not found' });
-        }
 
-        const isMatch = await user.comparePassword(password, user[0].password);
-        if (!isMatch) {
-            return res.status(401).json({ message: 'Invalid credentials' });
-        }
-
-        //jWT TOKEN
-        const payload = {
-            id: user.id
-        };
-
-        const token = jwt.sign(
-            payload,
-            config.jwtSecret,
-            { expiresIn: config.jwtExpire }
-        );
-
-        // Get route permissions based on user role
-        const allowedRoutes = routePermissions[user.role] || routePermissions.employee;
-        const userResponse = {
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role,
-            permissions: user.permissions,
-            routePermissions: allowedRoutes,
-            createdAt: user.createdAt
-        };
-
-        res.json({
-            message: 'Login successful',
-            user: userResponse,
-            token
-        });
-
-
-    } catch (error) {
-        console.error('Error during login:', error);
-        res.status(500).json({ message: 'Internal server error' });
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid credentials' });
     }
-}
+
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+
+    const payload = {
+      id: user.id
+    };
+
+    const token = jwt.sign(
+      payload,
+      config.jwtSecret,
+      { expiresIn: config.jwtExpire }
+    );
+
+   
+    const userResponse = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      permissions: user.permissions,
+      //routePermissions: allowedRoutes,
+      createdAt: user.createdAt
+    };
+
+    res.json({
+      message: 'Login successful',
+      user: userResponse,
+      token
+    });
+    console.log('User logged in successfully:', userResponse);
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).send('Server error');
+  }
+}  
 
 
 const getUserDetails = async (req, res) => {
@@ -90,7 +93,7 @@ const getUserDetails = async (req, res) => {
 }
 
 module.exports = {
-    userLogin,
+    loginUser,
     getUserDetails,
     createUser
 }
