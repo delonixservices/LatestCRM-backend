@@ -6,7 +6,7 @@ module.exports = {
   nodeEnv: process.env.NODE_ENV || 'development',
 
   // MongoDB configuration
-  //mongoURI: 'mongodb+srv://admin:tKPuRWiVHPH9xTdA@atlascluster.xw9oe1k.mongodb.net/newcrm?retryWrites=true&w=majority&appName=AtlasCluster' ,
+ mongoURI: 'mongodb+srv://admin:tKPuRWiVHPH9xTdA@atlascluster.xw9oe1k.mongodb.net/newcrm?retryWrites=true&w=majority&appName=AtlasCluster' ,
 
   // JWT configuration
   jwtSecret: process.env.JWT_SECRET || 'your-super-secret-jwt-key',

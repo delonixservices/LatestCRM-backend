@@ -4,19 +4,15 @@ const User = require('../models/userModel'); // Make sure to import your User mo
 const protect = async (req, res, next) => {
   let token;
 
-  // 1. Get token from header
   if (
     req.headers.authorization &&
     req.headers.authorization.startsWith('Bearer')
   ) {
     try {
-      // Get token from header
       token = req.headers.authorization.split(' ')[1];
 
-      // 2. Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // 3. Get user from the token (excluding password)
       req.user = await User.findById(decoded.id).select('-password');
 
       if (!req.user) {
@@ -29,7 +25,6 @@ const protect = async (req, res, next) => {
     } catch (error) {
       console.error('Authentication error:', error.message);
       
-      // More specific error messages
       if (error.name === 'JsonWebTokenError') {
         return res.status(401).json({ 
           message: 'Not authorized, invalid token' 
@@ -54,4 +49,14 @@ const protect = async (req, res, next) => {
   }
 };
 
-module.exports = { protect };
+const isAdmin = (req, res, next) => {
+  if (req.user   && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ 
+      message: 'Forbidden, admin access required' 
+    });
+  }
+}
+
+module.exports = { protect , isAdmin };
