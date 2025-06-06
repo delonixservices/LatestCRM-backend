@@ -1,25 +1,33 @@
 const User = require('../models/userModel');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 const config = require('../../config/config');
 
 
 const createUser = async (req, res) => {
+  console.log("User creation attempt with data:");
+  try {
     const { name, email, password, role } = req.body;
-    console.log('Creating user with data:');
-    try {
-        const user =  User({
-            name,
-            email,
-            password, // Ensure password is hashed in the User model
-            role // Ensure role is set correctly, e.g., 'employee', 'admin', etc.
-        });
-        await user.save();
-        res.status(201).json({mesaage : "User created successfully", user});
-    } catch (error) {
-        res.status(500).json({ message: 'Internal server error' });
+    
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ error: "Email already exists" });
     }
 
-}
+
+    const user = await User.create({
+      name,
+      email,
+      password,
+      role,
+    });
+
+    res.status(201).json({ user });
+  } catch (err) {
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 
 const loginUser = async (req, res) => {
     console.log("User login attempt with data:");
@@ -27,13 +35,20 @@ const loginUser = async (req, res) => {
    
 
     const { email, password } = req.body;
+    console.log("Password:", password);
 
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
+    hashedPassword = user.password;
+    
+    console.log("User found:", user.email);
+    
+    //const isMatch = await user.comparePassword(password);
+    const isMatch = await bcrypt.compare(password, hashedPassword);
 
-    const isMatch = await user.comparePassword(password);
+    console.log("password match status:", isMatch);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }
@@ -91,6 +106,8 @@ const getUserDetails = async (req, res) => {
         res.status(500).json({ message: 'Internal server error' });
     }
 }
+
+
 
 module.exports = {
     loginUser,

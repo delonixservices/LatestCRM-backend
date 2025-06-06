@@ -1,10 +1,11 @@
 const Lead = require('../models/leadModel');
+const User = require('../models/userModel');
+const mongoose = require('mongoose');
 const { validationResult } = require('express-validator');
 
 
 
 
-//New Lead Controller
 const newLead = async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -12,7 +13,6 @@ const newLead = async (req, res) => {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    // Parse `numberOfClients` if it's sent as a string
     if (typeof req.body.numberOfClients === 'string') {
       try {
         req.body.numberOfClients = JSON.parse(req.body.numberOfClients);
@@ -24,7 +24,6 @@ const newLead = async (req, res) => {
       }
     }
 
-    // Ensure `numberOfClients` matches the expected structure
     const { numberOfClients } = req.body;
     if (numberOfClients && typeof numberOfClients !== 'object') {
       return res.status(400).json({
@@ -47,7 +46,6 @@ const newLead = async (req, res) => {
 };
 
 
-// Update Lead Controller
 
 const updateLead = async (req, res) => {
       console.log("Update Lead request received ");
@@ -59,7 +57,6 @@ const updateLead = async (req, res) => {
           return res.status(404).json({ error: 'Lead not found' });
         }
     
-        // Update the lead with new values
         Object.keys(req.body).forEach(key => {
           if (key !== '_id' && key !== 'messages') {
             lead[key] = req.body[key];
@@ -93,7 +90,7 @@ const deleteLead = async (req, res) => {
 }
 
 // Get Lead Controller
-const getLead = async (req, res) => {
+const getAllLead = async (req, res) => {
   
     try {
       let leads;
@@ -112,6 +109,7 @@ const getLead = async (req, res) => {
 // Get Lead by ID Controller
 
 const getLeadById = async (req, res)  => {
+  console.log("getLeadById called with ID:", req.params.id);
   try {
     const lead = await Lead.findById(req.params.id).populate('assignee', 'name email');
     if (!lead) {
@@ -127,13 +125,55 @@ const getLeadById = async (req, res)  => {
   }
 }
 
-//
+
+
+const getLeadsByAssignee = async (req, res) => {
+  console.log("getLeadsByAssignee called with query:", req.query);
+  try {
+    const { assignee } = req.query;
+    console.log("Assignee ID received:", assignee);
+
+    if (!assignee) {
+      return res.status(400).json({ message: "Assignee ID is required." });
+    }
+
+    let assigneeId;
+    if (mongoose.Types.ObjectId.isValid(assignee)) {
+      assigneeId = assignee;
+    } else {
+      const user = await User.findOne({ name: assignee });
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      assigneeId = user._id;
+    }
+
+    const leads = await Lead.find()
+      .populate({
+        path: 'assignee',
+        match: {
+          _id: assigneeId,
+        },
+        select: 'name email',
+      });
+
+    const filteredLeads = leads.filter(lead => lead.assignee !== null);
+
+    res.status(200).json(filteredLeads);
+  } catch (error) {
+    console.error('Error fetching leads by assignee:', error);
+    res.status(500).json({ message: "Internal Server Error", error: error.message });
+  }
+};
+
+
 
 
 module.exports = {
   newLead,
   updateLead,
   deleteLead,
-  getLead,
-  getLeadById
+  getAllLead,
+  getLeadById,
+  getLeadsByAssignee
 };

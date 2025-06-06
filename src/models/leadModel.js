@@ -46,7 +46,7 @@ const leadSchema = new mongoose.Schema({
     }]
   },
   assignee: {
-    type: String,
+    type: mongoose.Schema.Types.ObjectId ,
     ref: 'User',
     required: true
   },
